@@ -1,10 +1,9 @@
 {
   "hotkey": "ctrl+alt+space",
   "language": "zh",
-  "model_name": "base",
+  "model_name": "small",
   "input_mode": "push_to_talk",
   "output_method": "clipboard",
-  "typing_speed": 0.01,
   "audio_device": null,
   "sample_rate": 16000,
   "channels": 1,
