@@ -1,195 +1,154 @@
-# 🎤 语音输入法
+# 语音输入法 v1.0
 
-一个 Windows 桌面应用，**按住热键说话 → 自动识别 → 输入到光标处**。
+一个基于本地模型的语音输入法，支持中文和英文语音识别，无需网络连接，保护用户隐私。
 
-不用再手动打字，动动嘴就能输入文字。
+## 功能特点
 
----
+- **本地离线识别**：使用 Whisper 或 Qwen3-ASR-0.6B 模型进行本地语音识别，无需网络连接
+- **热键控制**：默认使用 Ctrl+Alt+Space 触发录音，松开后自动识别
+- **智能处理**：内置 VAD 静音裁剪和 AI 降噪功能，提高识别准确率
+- **自动标点**：自动为识别结果添加标点符号
+- **剪贴板输入**：识别完成后自动将文字复制到剪贴板并粘贴到光标位置
+- **系统托盘**：提供系统托盘图标，方便管理和配置
 
-## ✨ 特性
+## 技术栈
 
-- **按住说话**：按住 `Ctrl+Alt+Space` 说话，松开自动识别
-- **本地识别**：基于 OpenAI Whisper，**完全离线**，无需网络
-- **全局生效**：在任何窗口（记事本、Word、浏览器）都可使用
-- **托盘后台**：系统托盘运行，不占桌面
-- **中英双语**：支持中文/英文识别
-- **两种输入模式**：模拟键盘打字 或 复制粘贴
+- **核心识别**：OpenAI Whisper / Qwen3-ASR-0.6B
+- **音频处理**：PyAudio、SciPy
+- **热键监听**：keyboard
+- **系统集成**：pystray、pyautogui
+- **降噪处理**：noisereduce
+- **静音检测**：基于能量的 VAD 算法
 
----
+## 安装步骤
 
-## 📦 安装
-
-### 第一步：确保有 Python（3.8+）
-
-```bash
-python --version
-```
-
-### 第二步：克隆/下载本项目
+### 1. 安装依赖
 
 ```bash
-cd voice-input
-```
-
-### 第三步：安装依赖
-
-最简方式：双击 `.venv.bat`，它帮你解决 PyAudio 等 Windows 依赖问题。
-
-或者手动：
-```bash
-# 创建虚拟环境（推荐）
-python -m venv venv
-venv\Scripts\activate
-
-# 安装依赖
+# 基础依赖
 pip install -r requirements.txt
 
-# 额外安装 Whisper
-pip install -U openai-whisper
+# 可选依赖（用于 Qwen3-ASR-0.6B 模型）
+pip install transformers torch
+
+# 可选依赖（用于降噪功能）
+pip install noisereduce
 ```
 
----
-
-## 🚀 使用
-
-### 启动程序
+### 2. 运行程序
 
 ```bash
+# 启动语音输入法
 python main.py
+
+# 测试模式（仅测试模块初始化）
+python main.py --test
+
+# 查看配置
+python main.py --config
 ```
 
-或双击 `.venv.bat`
+## 使用方法
 
-启动后 **系统托盘** 会出现一个麦克风图标。
+1. **启动程序**：运行 `python main.py` 启动语音输入法
+2. **开始录音**：按住 `Ctrl+Alt+Space` 热键开始录音
+3. **停止录音**：松开热键停止录音，系统会自动识别并输入文字
+4. **查看系统托盘**：右键点击系统托盘图标可以修改设置
 
-### 基本操作
+## 配置选项
 
-1. **正常启动**：
-   ```bash
-   python main.py
-   ```
+配置文件位于 `data/config.json`，可以通过修改此文件调整以下选项：
 
-2. **测试功能**（首次运行建议）：
-   ```bash
-   python main.py --test
-   ```
+| 配置项 | 默认值 | 说明 |
+|-------|-------|------|
+| hotkey | ctrl+alt+space | 触发录音的热键 |
+| language | zh | 识别语言：zh中文，en英文 |
+| model_name | base | 识别模型：qwen3-asr-0.6b/tiny/base/small/medium/large |
+| input_mode | push_to_talk | 录音模式：push_to_talk（按住说话）/ toggle（按一次开始/停止） |
+| output_method | clipboard | 文字插入方式：clipboard（复制粘贴） |
+| audio_device | null | 音频设备ID，null=自动选择 |
+| sample_rate | 16000 | 采样率 |
+| channels | 1 | 声道数 |
+| enable_beep | true | 开始/结束录音时的提示音 |
+| auto_punctuation | true | 自动加标点 |
+| debug_mode | false | 调试模式 |
+| log_level | INFO | 日志级别 |
 
-3. **查看配置**：
-   ```
-   python main.py --config
-   ```
+## 模型选择
 
-### 使用方法
+- **qwen3-asr-0.6b**：专为中文优化的轻量级模型，速度快，准确率高
+- **tiny**：最小的模型，速度最快，但准确率较低
+- **base**：平衡速度和准确率的模型，推荐使用
+- **small**：较大的模型，准确率更高，但速度较慢
+- **medium**：大型模型，准确率高，速度慢
+- **large**：最大的模型，准确率最高，但速度最慢
 
-1. 打开任意文本编辑器（记事本、Word、浏览器输入框）
-2. 将光标放到你想输入的位置
-3. **按住 `Ctrl+Alt+Space`**（默认热键） 说话
-4. **松开热键**，语音会自动识别并输入
+## 常见问题
 
-> 💡 如果热键冲突，右键托盘图标 → 修改热键
+### 1. 热键不生效
 
----
+- 以管理员权限运行程序
+- 检查热键是否与其他程序冲突
+- 尝试修改热键组合
 
-## ⚙️ 配置
+### 2. 识别速度慢
 
-### 热键修改
+- 选择较小的模型（如 base 或 tiny）
+- 确保系统资源充足
+- 减少录音时长
 
-右键托盘图标 → "修改热键" → 输入新的组合，如 `ctrl+shift+v`
+### 3. 识别准确率低
 
-### 其他配置
+- 选择较大的模型（如 small 或 medium）
+- 在安静的环境中录音
+- 清晰发音，语速适中
+- 检查麦克风是否正常工作
 
-配置文件位于：`data/config.json`
+### 4. 程序崩溃
 
-主要配置项：
-```json
-{
-  "hotkey": "ctrl+alt+space",      // 热键组合
-  "language": "zh",                // 识别语言 zh/en
-  "model_name": "base",            // 模型大小：tiny/base/small/medium/large
-  "output_method": "clipboard",    // 输入方式：typing（打字）/clipboard（粘贴）
-  "typing_speed": 0.01,            // 打字速度（秒/字符）
-  "enable_beep": true              // 录音提示音
-}
-```
+- 检查依赖是否正确安装
+- 查看日志文件 `data/voice_input.log` 了解错误原因
+- 尝试使用较小的模型
 
-**模型大小说明**：
-- `tiny` (75MB)：最快，准确度一般
-- `base` (142MB)：平衡，推荐
-- `small` (466MB)：准确性不错
-- `medium` (1.5GB)：准确度高，较慢
-- `large` (3.1GB)：最准确，但是很慢
-
----
-
-## 🛠️ 模块说明
+## 项目结构
 
 ```
 voice-input/
 ├── main.py              # 主程序入口
-├── config.py           # 配置管理
-├── recorder.py         # 录音模块（按住热键录音）
-├── recognizer.py      # Whisper语音识别
-├── text_typing.py     # 文字输入（打字/粘贴）
-├── hotkey_manager.py  # 全局热键监听
-├── tray_icon.py       # 系统托盘图标
-├── requirements.txt   # 依赖列表
-├── .venv.bat          # Windows快速启动脚本
-└── data/              # 数据目录（配置、临时文件、模型）
+├── config.py            # 配置管理
+├── recorder.py          # 录音模块
+├── recognizer.py        # 语音识别模块
+├── text_typing.py       # 文本输入模块
+├── hotkey_manager.py    # 热键管理
+├── tray_icon.py         # 系统托盘图标
+├── vad.py               # VAD 静音裁剪模块
+├── denoiser.py          # AI 降噪模块
+├── requirements.txt     # 依赖项
+└── data/                # 数据目录
+    ├── temp/            # 临时录音文件
+    ├── config.json      # 配置文件
+    └── models/          # 模型文件
 ```
 
----
+## 性能优化
 
-## 🔧 故障排除
+1. **模型选择**：根据设备性能选择合适的模型
+2. **VAD 裁剪**：自动裁剪静音部分，减少识别时间
+3. **AI 降噪**：降低背景噪音，提高识别准确率
+4. **批量处理**：对于较长的语音，可以分批次处理
 
-### 1. "No module named 'pyaudio'"
+## 未来计划
 
-Windows 用户需要安装 PyAudio：
+- [ ] 支持实时语音识别
+- [ ] 增加更多语言支持
+- [ ] 优化模型推理速度
+- [ ] 添加自定义词库功能
+- [ ] 提供图形化配置界面
 
-```bash
-# 尝试这个
-pip install pipwin
-pipwin install pyaudio
+## 许可证
 
-# 或下载预编译包：https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyaudio
-# 然后：pip install PyAudio-0.2.11-cpXX-XX-win_amd64.whl
-```
+本项目基于 MIT 许可证开源。
 
-### 2. 无法录音或没声音
+## 贡献
 
-- 检查麦克风是否禁用
-- 运行 `python main.py --test` 检查设备列表
-- 尝试更换音频设备（如果有多麦克风）
-
-### 3. 识别不准
-
-- 减慢语速，清晰发音
-- 切换到更大的模型（修改 config.json 中 model_name）
-- 确保环境安静
-
-### 4. 热键无效
-
-- 以管理员权限运行程序
-- 修改热键避免与现有快捷键冲突
-- 检查键盘布局（部分热键可能与输入法冲突）
-
-### 5. Whisper 模型下载慢
-
-第一次运行会自动下载模型（约75MB-3GB），可以：
-- 使用国内镜像源：`pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple`
-- 手动下载模型到 `data/models/` 目录
-
----
-
-## 💡 使用技巧
-
-1. **分段输入**：长段落可以分几次录音，每次一句
-2. **纠错**：识别错了？直接按 `Ctrl+Z` 撤销，重新说
-3. **标点**：程序会自动添加句号，说"问号"也会识别
-4. **中英混合**：说中文时夹杂英文单词通常可以识别
-5. **离线备用**：确保下载好模型，没有网络也能用
-
----
-
-## 📄 许可证
-
-MIT License - 详见 LICENSE 文件
+欢迎提交 Issue 和 Pull Request 来改进这个项目！

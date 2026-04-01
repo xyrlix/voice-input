@@ -22,7 +22,7 @@ MODEL_DIR.mkdir(exist_ok=True)
 DEFAULT_CONFIG = {
     "hotkey": "ctrl+alt+space",  # 按住说话的热键
     "language": "zh",  # 识别语言：zh中文，en英文
-    "model_name": "base",  # Whisper模型大小: tiny/base/small/medium/large
+    "model_name": "base",  # 模型名称: qwen3-asr-0.6b/tiny/base/small/medium/large
     "input_mode": "push_to_talk",  # 按一次启动录音模式: push_to_talk / toggle
     "output_method": "clipboard",  # 文字插入方式: clipboard（复制粘贴）
     "audio_device": None,  # 音频设备ID，None=自动选择
@@ -36,6 +36,7 @@ DEFAULT_CONFIG = {
 
 # 模型名称对应的大小（MB）
 MODEL_SIZES = {
+    "qwen3-asr-0.6b": 300,  # Qwen3-ASR-0.6B
     "tiny": 75,  # tiny.en / tiny
     "base": 142,  # base.en / base
     "small": 466,  # small.en / small
@@ -92,7 +93,10 @@ def config_to_str(config: dict = None) -> str:
             lines.append(f"🌐 识别语言: {lang_name}")
         elif key == "model_name":
             size_mb = MODEL_SIZES.get(value, "?")
-            lines.append(f"🧠 识别模型: {value} (~{size_mb}MB)")
+            if value == "qwen3-asr-0.6b":
+                lines.append(f"🧠 识别模型: Qwen3-ASR-0.6B (~{size_mb}MB)")
+            else:
+                lines.append(f"🧠 识别模型: {value} (~{size_mb}MB)")
         elif key == "input_mode":
             mode_name = {
                 "push_to_talk": "按住说话",

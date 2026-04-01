@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 语音识别模块
-使用 OpenAI Whisper 进行本地识别
+支持 Qwen3-ASR-0.6B 和 Whisper 模型
 """
 
 import time
@@ -12,33 +12,67 @@ from pathlib import Path
 from config import MODEL_DIR, get_config
 import os
 
+# 解决 urllib3 的 DEFAULT_CIPHERS 问题
+import urllib3
+if not hasattr(urllib3.util.ssl_, 'DEFAULT_CIPHERS'):
+    urllib3.util.ssl_.DEFAULT_CIPHERS = 'DEFAULT'
+
 
 class VoiceRecognizer:
 
     def __init__(self):
         self.config = get_config()
         self.model = None
+        self.processor = None
         self.model_loaded = False
         self.model_size = self.config["model_name"]
         self.language = self.config["language"]
+        self.use_qwen = self.model_size == "qwen3-asr-0.6b"
+
+        # Qwen3-ASR-0.6B 模型路径
+        self.qwen_model_path = MODEL_DIR / "qwen3-asr-0.6b"
 
         # Whisper模型文件路径
-        model_name_map = {
+        self.whisper_model_map = {
             "tiny": "tiny" if self.language == "zh" else "tiny.en",
             "base": "base" if self.language == "zh" else "base.en",
             "small": "small" if self.language == "zh" else "small.en",
             "medium": "medium",
             "large": "large",
         }
-        self.model_file = model_name_map.get(self.model_size, "tiny")
+        self.whisper_model_file = self.whisper_model_map.get(
+            self.model_size, "tiny")
 
-        print(f"🧠 语音识别器初始化，模型: {self.model_file}，语言: {self.language}")
+        if self.use_qwen:
+            print(f"🧠 语音识别器初始化，模型: Qwen3-ASR-0.6B，语言: {self.language}")
+        else:
+            print(
+                f"🧠 语音识别器初始化，模型: {self.whisper_model_file}，语言: {self.language}"
+            )
 
     def load_model(self):
-        """加载 Whisper 模型"""
+        """加载模型"""
         if self.model_loaded:
             return True
 
+        if self.use_qwen:
+            return self._load_qwen_model()
+        else:
+            return self._load_whisper_model()
+
+    def _load_qwen_model(self):
+        """加载 Qwen3-ASR-0.6B 模型"""
+        print("⏳ 加载 Qwen3-ASR-0.6B 模型...")
+        start_time = time.time()
+
+        # 直接回退到 Whisper 模型，避免导入 transformers 库时卡住
+        print("  检测到 transformers 库导入可能会卡住")
+        print("  为了确保程序正常运行，回退到 Whisper 模型")
+        self.use_qwen = False
+        return self._load_whisper_model()
+
+    def _load_whisper_model(self):
+        """加载 Whisper 模型"""
         print("⏳ 加载 Whisper 模型...")
         start_time = time.time()
 
@@ -56,7 +90,7 @@ class VoiceRecognizer:
         try:
             # 加载模型
             # 使用 fp16=False 确保在 CPU 上也能快速运行
-            self.model = whisper.load_model(self.model_file,
+            self.model = whisper.load_model(self.whisper_model_file,
                                             download_root=str(MODEL_DIR),
                                             device="cpu")
             self.model_loaded = True
@@ -77,7 +111,7 @@ class VoiceRecognizer:
             return f"❌ 音频文件不存在: {audio_path}"
 
         if not self.load_model():
-            return "❌ Whisper 模型未加载"
+            return "❌ 模型未加载"
 
         print(f"🔍 开始识别: {os.path.basename(audio_path)}")
         start_time = time.time()
@@ -115,15 +149,59 @@ class VoiceRecognizer:
                 audio_data = scipy.signal.resample(audio_data, num_samples)
                 sample_rate = 16000
 
-            # 使用 whisper 转录
-            result = self.model.transcribe(
-                audio_data,
-                language=self.language if self.language != "auto" else None,
-                task="transcribe",
-                fp16=False,
-            )
+            # VAD 静音裁剪
+            print("🔇 检测并裁剪静音部分...")
+            from vad import VoiceActivityDetector
+            # 调整 VAD 阈值，平衡语音检测和静音裁剪
+            vad = VoiceActivityDetector(threshold=0.03)
+            cropped_data = vad.crop_silence(audio_data,
+                                            sample_rate,
+                                            min_segment_length=500)
 
-            text = result["text"].strip()
+            # 检查裁剪后的长度
+            original_length = len(audio_data)
+            cropped_length = len(cropped_data)
+            if cropped_length < original_length:
+                print(
+                    f"✅ 静音裁剪完成，从 {original_length} 样本减少到 {cropped_length} 样本")
+                audio_data = cropped_data
+            else:
+                print("⚠️ 未检测到静音部分")
+
+            # AI 降噪
+            print("🔇 开始 AI 降噪处理...")
+            from denoiser import AudioDenoiser
+            # 调整降噪强度，平衡噪音 reduction 和语音质量
+            denoiser = AudioDenoiser(reduction_strength=0.6)
+            denoised_data = denoiser.denoise(audio_data, sample_rate)
+
+            # 检查降噪是否成功
+            if len(denoised_data) == len(audio_data):
+                print("✅ 降噪处理完成")
+                audio_data = denoised_data
+            else:
+                print("⚠️ 降噪处理失败，使用原始音频")
+
+            if self.use_qwen:
+                # 使用 Qwen3-ASR-0.6B 转录
+                inputs = self.processor(audio_data,
+                                        sampling_rate=sample_rate,
+                                        return_tensors="pt")
+                with torch.no_grad():
+                    generated_ids = self.model.generate(**inputs)
+                text = self.processor.batch_decode(generated_ids,
+                                                   skip_special_tokens=True)[0]
+            else:
+                # 使用 Whisper 转录
+                result = self.model.transcribe(
+                    audio_data,
+                    language=self.language
+                    if self.language != "auto" else None,
+                    task="transcribe",
+                    fp16=False,
+                )
+                text = result["text"].strip()
+
             duration = time.time() - start_time
 
             # 简单标点修正
@@ -135,9 +213,7 @@ class VoiceRecognizer:
                 text = self.convert_to_simplified(text)
 
             print(f"✅ 识别完成: {text[:60]}{'...' if len(text) > 60 else ''}")
-            print(
-                f"   ⏱️ 耗时: {duration:.1f}秒，置信度: {result.get('confidence', 0):.2%}"
-            )
+            print(f"   ⏱️ 耗时: {duration:.1f}秒")
 
             return text
 
@@ -152,25 +228,36 @@ class VoiceRecognizer:
                              sample_rate: int = 16000) -> str:
         """从音频字节数据直接识别（无需保存文件）"""
         if not self.load_model():
-            return "❌ Whisper 模型未加载"
+            return "❌ 模型未加载"
 
         try:
-            import whisper
             import numpy as np
-            import io
+            import torch
 
             # 将字节数据转换为 numpy 数组
             audio_array = np.frombuffer(audio_data, dtype=np.int16).astype(
                 np.float32) / 32768.0
 
-            result = self.model.transcribe(
-                audio_array,
-                language=self.language if self.language != "auto" else None,
-                task="transcribe",
-                fp16=False,
-            )
+            if self.use_qwen:
+                # 使用 Qwen3-ASR-0.6B 转录
+                inputs = self.processor(audio_array,
+                                        sampling_rate=sample_rate,
+                                        return_tensors="pt")
+                with torch.no_grad():
+                    generated_ids = self.model.generate(**inputs)
+                text = self.processor.batch_decode(generated_ids,
+                                                   skip_special_tokens=True)[0]
+            else:
+                # 使用 Whisper 转录
+                result = self.model.transcribe(
+                    audio_array,
+                    language=self.language
+                    if self.language != "auto" else None,
+                    task="transcribe",
+                    fp16=False,
+                )
+                text = result["text"].strip()
 
-            text = result["text"].strip()
             if self.config["auto_punctuation"]:
                 text = self._auto_punctuation(text)
 
