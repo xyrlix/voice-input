@@ -1,0 +1,21 @@
+# 语音相关
+whisper==1.1.10         # OpenAI Whisper 离线识别，支持中文
+numpy>=1.19.0            # Whisper依赖
+torch>=2.0.0             # Whisper依赖（建议安装CPU版）
+pyaudio                   # 从 https://www.lfd.uci.edu/~gohlke/pythonlibs/ 下载预编译wheel安装
+pymysql                   # MySQL-python 的纯Python替代
+
+# 窗口和输入
+pyautogui==0.9.54
+keyboard==0.13.5         # 热键全局监听
+pyperclip==1.8.2
+
+# GUI和系统托盘
+pystray==0.19.2
+Pillow>=10.0.0           # 托盘图标
+tkinterdnd2==0.3.0       # tkinter拖拽扩展（如果需要）
+
+# 其他
+sounddevice==0.4.6       # 可选，音频播放反馈
+pydub==0.25.1            # 音频处理
+configparser>=5.0.0
