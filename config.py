@@ -22,7 +22,7 @@ MODEL_DIR.mkdir(exist_ok=True)
 DEFAULT_CONFIG = {
     "hotkey": "ctrl+alt+space",      # 按住说话的热键
     "language": "zh",                # 识别语言：zh中文，en英文
-    "model_name": "tiny",            # Whisper模型大小: tiny/base/small/medium/large
+    "model_name": "base",            # Whisper模型大小: tiny/base/small/medium/large
     "input_mode": "push_to_talk",    # 按一次启动录音模式: push_to_talk / toggle
     "output_method": "clipboard",       # 文字插入方式: typing（直接打字）/ clipboard（复制粘贴）
     "typing_speed": 0.01,            # 打字延迟（秒）

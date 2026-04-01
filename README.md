@@ -28,7 +28,7 @@ python --version
 ### 第二步：克隆/下载本项目
 
 ```bash
-cd F:\claw\voice-input
+cd voice-input
 ```
 
 ### 第三步：安装依赖
@@ -104,18 +104,18 @@ python main.py
 ```json
 {
   "hotkey": "ctrl+alt+space",      // 热键组合
-  "language": "zh",                // 识别语言 zh/zh
-  "model_name": "tiny",           // 模型大小：tiny/base/small/medium/large
-  "output_method": "typing",      // 输入方式：typing（打字）/clipboard（粘贴）
-  "typing_speed": 0.01,           // 打字速度（秒/字符）
-  "enable_beep": true             // 录音提示音
+  "language": "zh",                // 识别语言 zh/en
+  "model_name": "base",            // 模型大小：tiny/base/small/medium/large
+  "output_method": "clipboard",    // 输入方式：typing（打字）/clipboard（粘贴）
+  "typing_speed": 0.01,            // 打字速度（秒/字符）
+  "enable_beep": true              // 录音提示音
 }
 ```
 
 **模型大小说明**：
 - `tiny` (75MB)：最快，准确度一般
-- `base` (142MB)：平衡
-- `small` (466MB)：推荐，准确性不错
+- `base` (142MB)：平衡，推荐
+- `small` (466MB)：准确性不错
 - `medium` (1.5GB)：准确度高，较慢
 - `large` (3.1GB)：最准确，但是很慢
 
@@ -124,15 +124,15 @@ python main.py
 ## 🛠️ 模块说明
 
 ```
-F:\claw\voice-input\
+voice-input/
 ├── main.py              # 主程序入口
 ├── config.py           # 配置管理
 ├── recorder.py         # 录音模块（按住热键录音）
-├── recognizer.py       # Whisper语音识别
-├── typing.py           # 文字输入（打字/粘贴）
-├── hotkey_manager.py   # 全局热键监听
-├── tray_icon.py        # 系统托盘图标
-├── requirements.txt    # 依赖列表
+├── recognizer.py      # Whisper语音识别
+├── text_typing.py     # 文字输入（打字/粘贴）
+├── hotkey_manager.py  # 全局热键监听
+├── tray_icon.py       # 系统托盘图标
+├── requirements.txt   # 依赖列表
 ├── .venv.bat          # Windows快速启动脚本
 └── data/              # 数据目录（配置、临时文件、模型）
 ```

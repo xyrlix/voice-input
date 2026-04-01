@@ -17,16 +17,27 @@ if sys.platform == 'win32':
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', line_buffering=True)
 
 import logging
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 LOG_FILE = Path(__file__).parent / "data" / "voice_input.log"
 LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
 
+# 日志轮转：最大5MB，保留3个备份
+file_handler = RotatingFileHandler(
+    LOG_FILE, 
+    maxBytes=5*1024*1024,  # 5MB
+    backupCount=3,
+    encoding='utf-8'
+)
+file_handler.setLevel(logging.INFO)
+file_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s',
     handlers=[
-        logging.FileHandler(LOG_FILE, encoding='utf-8'),
+        file_handler,
         logging.StreamHandler(sys.stdout)
     ]
 )
@@ -169,6 +180,10 @@ def main():
         recorder = AudioRecorder()
         recognizer = VoiceRecognizer()
         typer = get_typer()
+        
+        # 预加载模型（避免首次识别等待）
+        logger.info("预加载 Whisper 模型...")
+        recognizer.load_model()
         
         # 启动热键管理器
         hotkey_manager = HotkeyManager(recorder, recognizer, typer)

@@ -93,6 +93,15 @@ class VoiceRecognizer:
             if len(audio_data.shape) > 1:
                 audio_data = audio_data.mean(axis=1)
             
+            # 自动增益：如果音量太小，放大到合适水平
+            max_val = np.max(np.abs(audio_data))
+            target_level = 0.5  # 目标50%音量
+            if max_val < target_level and max_val > 0:
+                gain = target_level / max_val
+                gain = min(gain, 15)  # 最多放大15倍
+                audio_data = audio_data * gain
+                print(f"🔊 已应用增益: {gain:.1f}x")
+            
             # 重采样到 16000Hz（如果需要）
             if sample_rate != 16000:
                 import scipy.signal

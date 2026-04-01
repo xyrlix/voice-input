@@ -104,6 +104,9 @@ class AudioRecorder:
                 input_device_index=self.config.get("audio_device")
             )
 
+            # 直接录音，不做任何过滤
+            self.audio_frames = []
+            
             # 录制循环
             while self.is_recording:
                 try:
